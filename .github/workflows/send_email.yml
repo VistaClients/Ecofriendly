@@ -10,6 +10,7 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
+      # Step 1: Send Email to User
       - name: Send Email to User
         uses: dawidd6/action-send-mail@v3
         with:
@@ -24,6 +25,7 @@ jobs:
           body: |
             ${{ github.event.client_payload.body }}
 
+      # Step 2: Send Email to Admin
       - name: Send Email to Admin
         uses: dawidd6/action-send-mail@v3
         with:
@@ -40,14 +42,17 @@ jobs:
             Message:
             ${{ github.event.client_payload.body }}
 
+      # Step 3: Set up Python
       - name: Set up Python
         uses: actions/setup-python@v4
         with:
           python-version: "3.x"
 
+      # Step 4: Install PyGithub
       - name: Install PyGithub
         run: pip install PyGithub
 
+      # Step 5: Log Email in GitHub Issue
       - name: Log Email in GitHub Issue
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -56,21 +61,26 @@ jobs:
           EMAIL_BODY: ${{ github.event.client_payload.body }}
           GITHUB_REPOSITORY: ${{ github.repository }}
         run: |
-          import os
-          from github import Github
-          from datetime import datetime
+          python - <<EOF
+import os
+from github import Github
+from datetime import datetime
 
-          subject = os.environ["EMAIL_SUBJECT"]
-          from_email = os.environ["EMAIL_FROM"]
-          body = os.environ["EMAIL_BODY"]
-          repo_name = os.environ["GITHUB_REPOSITORY"]
+# Read environment variables
+subject = os.environ["EMAIL_SUBJECT"]
+from_email = os.environ["EMAIL_FROM"]
+body = os.environ["EMAIL_BODY"]
+repo_name = os.environ["GITHUB_REPOSITORY"]
 
-          g = Github(os.environ["GITHUB_TOKEN"])
-          repo = g.get_repo(repo_name)
+# Connect to GitHub
+g = Github(os.environ["GITHUB_TOKEN"])
+repo = g.get_repo(repo_name)
 
-          now = datetime.utcnow().isoformat()
-          title = f"Email Log: {subject} ({now})"
-          content = f"**From:** {from_email}\n**Subject:** {subject}\n**Message:**\n{body}"
+# Create a timestamped issue
+now = datetime.utcnow().isoformat()
+title = f"Email Log: {subject} ({now})"
+content = f"**From:** {from_email}\\n**Subject:** {subject}\\n**Message:**\\n{body}"
 
-
-          repo.create_issue(title=title, body=content)
+# Create the issue
+repo.create_issue(title=title, body=content)
+EOF
